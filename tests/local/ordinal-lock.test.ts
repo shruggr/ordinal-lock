@@ -24,22 +24,21 @@ const [badPriv, badPub, badPKH, badAdd] = randomPrivateKey()
 
 describe('Test SmartContract `OrdinalLock`', () => {
     let instance: OrdinalLock
-    let payOut: bsv.Transaction.Output
+    // let payOut: bsv.Transaction.Output
+    const payScript = bsv.Script.fromAddress(sellerAdd)
+    const paySats = 1000n
 
     beforeEach(async () => {
         await OrdinalLock.compile()
-        payOut = new bsv.Transaction.Output({
-            script: bsv.Script.fromAddress(sellerAdd),
-            satoshis: 1000,
-        })
 
         instance = new OrdinalLock(
             Ripemd160(sellerPKH.toString('hex')),
-            toByteString(
-                payOut.toBufferWriter().toBuffer().toString('hex'),
-                false
-            )
+            payScript.toHex(),
+            paySats
         )
+
+        instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
+
         await instance.connect(getDummySigner([sellerPriv]))
     })
 
@@ -83,87 +82,24 @@ describe('Test SmartContract `OrdinalLock`', () => {
     })
 
     it('should pass the purchase method unit test successfully.', async () => {
-        const tx = new bsv.Transaction()
-        const selfOut = new bsv.Transaction.Output({
-            script: bsv.Script.fromAddress(sellerAdd),
-            satoshis: 1,
-        })
-        tx.addOutput(selfOut)
-        tx.addOutput(payOut)
-        tx.change(sellerAdd)
-        instance.bindTxBuilder(
-            'purchase',
-            async (
-                current: OrdinalLock,
-                options: MethodCallOptions<OrdinalLock>,
-                ...args: any
-            ): Promise<ContractTransaction> => {
-                tx.addInput(current.buildContractInput(options.fromUTXO))
-
-                return {
-                    tx,
-                    atInputIndex: 0,
-                    nexts: [],
-                }
-            }
-        )
-
         const { tx: callTx, atInputIndex } = await instance.methods.purchase(
-            toByteString(
-                selfOut.toBufferWriter().toBuffer().toString('hex'),
-                false
-            ),
+            payScript.toHex(),
             {
-                pubKeyOrAddrToSign: [sellerPub],
                 fromUTXO: getDummyUTXO(),
+                pubKeyOrAddrToSign: [sellerPub],
+                changeAddress: sellerAdd,
             } as MethodCallOptions<OrdinalLock>
         )
         const result = callTx.verifyScript(atInputIndex)
-        console.log(result)
         expect(result.success, result.error).to.eq(true)
     })
 
-    it('should fail the purchase method unit test bit bad payOut.', async () => {
-        const tx = new bsv.Transaction()
-        const selfOut = new bsv.Transaction.Output({
-            script: bsv.Script.fromAddress(sellerAdd),
-            satoshis: 1,
-        })
-        const badOut = new bsv.Transaction.Output({
-            script: bsv.Script.fromAddress(sellerAdd),
-            satoshis: 1,
-        })
-        tx.addOutput(selfOut)
-        tx.addOutput(badOut)
-        tx.change(sellerAdd)
-        instance.bindTxBuilder(
-            'purchase',
-            async (
-                current: OrdinalLock,
-                options: MethodCallOptions<OrdinalLock>,
-                ...args: any
-            ): Promise<ContractTransaction> => {
-                tx.addInput(current.buildContractInput(options.fromUTXO))
-
-                return {
-                    tx,
-                    atInputIndex: 0,
-                    nexts: [],
-                }
-            }
-        )
-
+    it('should fail the purchase method unit test bad payOut.', async () => {
+        const badScript = bsv.Script.fromAddress(badAdd).toHex()
         expect(
-            instance.methods.purchase(
-                toByteString(
-                    selfOut.toBufferWriter().toBuffer().toString('hex'),
-                    false
-                ),
-                {
-                    pubKeyOrAddrToSign: [sellerPub],
-                    fromUTXO: getDummyUTXO(),
-                } as MethodCallOptions<OrdinalLock>
-            )
+            instance.methods.purchase(badScript, {
+                fromUTXO: getDummyUTXO(),
+            } as MethodCallOptions<OrdinalLock>)
         ).to.be.rejectedWith('bad self output')
     })
 })

@@ -16,35 +16,51 @@ import {
     myAddress,
 } from '../utils/privateKey'
 
+const payScript = bsv.Script.fromAddress(myAddress).toHex()
+const paySats = 1000n
+
 async function main() {
     await OrdinalLock.compile()
-    const payOut = new bsv.Transaction.Output({
-        script: bsv.Script.fromAddress(myAddress),
-        satoshis: 1000,
-    })
-        .toBufferWriter()
-        .toBuffer()
-
-    const instance = new OrdinalLock(
+    let instance = new OrdinalLock(
         Ripemd160(myPublicKeyHash.toString('hex')),
-        toByteString(payOut.toString('hex'), false)
+        payScript,
+        paySats
     )
     await instance.connect(getDefaultSigner(myPrivateKey))
 
+    instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
+
     // contract deployment
-    const deployTx = await instance.deploy(inputSatoshis)
+    let deployTx = await instance.deploy(1)
     console.log('OrdinalLock contract deployed: ', deployTx.id)
 
     // contract call
-    const { tx: callTx } = await instance.methods.cancel(
+    const { tx: cancelTx } = await instance.methods.cancel(
         (sigResps) => findSig(sigResps, myPublicKey),
         PubKey(myPublicKey.toString()),
         {
             pubKeyOrAddrToSign: [myPublicKey],
         } as MethodCallOptions<OrdinalLock>
     )
+    console.log('OrdinalLock contract `cancel` called: ', cancelTx.id)
 
-    console.log('OrdinalLock contract `cancel` called: ', callTx.id)
+    instance = new OrdinalLock(
+        Ripemd160(myPublicKeyHash.toString('hex')),
+        payScript,
+        paySats
+    )
+    await instance.connect(getDefaultSigner(myPrivateKey))
+    instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
+
+    // contract deployment
+    deployTx = await instance.deploy(1)
+    console.log('OrdinalLock contract deployed: ', deployTx.id)
+
+    const { tx: purchaseTx } = await instance.methods.purchase(payScript, {
+        changeAddress: myAddress,
+    } as MethodCallOptions<OrdinalLock>)
+
+    console.log('OrdinalLock contract `purchase` called: ', purchaseTx.id)
 }
 
 describe('Test SmartContract `OrdinalLock` on testnet', () => {
