@@ -1,9 +1,9 @@
 node_modules/
 dist/
 out/
-artifacts/
+# artifacts/
 **/.env
-**/scrypt.index.json
+# **/scrypt.index.json
 .vscode/*
 !.vscode/launch.json
 !.vscode/tasks.json
