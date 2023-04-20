@@ -1,21 +1,14 @@
 import { expect, use } from 'chai'
 import {
     bsv,
-    ContractTransaction,
     findSig,
     MethodCallOptions,
     PubKey,
-    PubKeyHash,
     Ripemd160,
-    sha256,
-    toByteString,
+    TransactionResponse,
 } from 'scrypt-ts'
 import { OrdinalLock } from '../../src/contracts/ordinal-lock'
-import {
-    getDummySigner,
-    getDummyUTXO,
-    randomPrivateKey,
-} from './utils/txHelper'
+import { getDummySigner, randomPrivateKey } from './utils/txHelper'
 import chaiAsPromised from 'chai-as-promised'
 use(chaiAsPromised)
 
@@ -24,11 +17,11 @@ const [badPriv, badPub, badPKH, badAdd] = randomPrivateKey()
 
 describe('Test SmartContract `OrdinalLock`', () => {
     let instance: OrdinalLock
-    // let payOut: bsv.Transaction.Output
     const payScript = bsv.Script.fromAddress(sellerAdd)
     const paySats = 1000n
+    let deployTx: TransactionResponse
 
-    beforeEach(async () => {
+    before(async () => {
         await OrdinalLock.compile()
 
         instance = new OrdinalLock(
@@ -40,6 +33,8 @@ describe('Test SmartContract `OrdinalLock`', () => {
         instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
 
         await instance.connect(getDummySigner([sellerPriv]))
+        deployTx = await instance.deploy(1)
+        console.log('OrdinalLock contract deployed: ', deployTx.id)
     })
 
     it('should pass the cancel method unit test successfully.', async () => {
@@ -48,7 +43,6 @@ describe('Test SmartContract `OrdinalLock`', () => {
             PubKey(sellerPub.toString()),
             {
                 pubKeyOrAddrToSign: [sellerPub],
-                fromUTXO: getDummyUTXO(),
             } as MethodCallOptions<OrdinalLock>
         )
         const result = callTx.verifyScript(atInputIndex)
@@ -62,7 +56,6 @@ describe('Test SmartContract `OrdinalLock`', () => {
                 PubKey(badPub.toString()),
                 {
                     pubKeyOrAddrToSign: [sellerPub],
-                    fromUTXO: getDummyUTXO(),
                 } as MethodCallOptions<OrdinalLock>
             )
         ).to.be.rejectedWith('bad seller')
@@ -75,7 +68,6 @@ describe('Test SmartContract `OrdinalLock`', () => {
                 PubKey(sellerPub.toString()),
                 {
                     pubKeyOrAddrToSign: [badPub],
-                    fromUTXO: getDummyUTXO(),
                 } as MethodCallOptions<OrdinalLock>
             )
         ).to.be.rejectedWith('signature check failed')
@@ -85,8 +77,6 @@ describe('Test SmartContract `OrdinalLock`', () => {
         const { tx: callTx, atInputIndex } = await instance.methods.purchase(
             payScript.toHex(),
             {
-                fromUTXO: getDummyUTXO(),
-                pubKeyOrAddrToSign: [sellerPub],
                 changeAddress: sellerAdd,
             } as MethodCallOptions<OrdinalLock>
         )
@@ -98,7 +88,12 @@ describe('Test SmartContract `OrdinalLock`', () => {
         const badScript = bsv.Script.fromAddress(badAdd).toHex()
         expect(
             instance.methods.purchase(badScript, {
-                fromUTXO: getDummyUTXO(),
+                fromUTXO: {
+                    outputIndex: 0,
+                    txId: deployTx.id,
+                    satoshis: deployTx.outputs[0].satoshis,
+                    script: deployTx.outputs[0].script.toString(),
+                },
             } as MethodCallOptions<OrdinalLock>)
         ).to.be.rejectedWith('bad self output')
     })

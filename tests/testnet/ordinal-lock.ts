@@ -1,14 +1,6 @@
 import { OrdinalLock } from '../../src/contracts/ordinal-lock'
-import { getDefaultSigner, inputSatoshis } from './utils/txHelper'
-import {
-    toByteString,
-    sha256,
-    bsv,
-    Ripemd160,
-    findSig,
-    MethodCallOptions,
-    PubKey,
-} from 'scrypt-ts'
+import { getDefaultSigner } from './utils/txHelper'
+import { bsv, Ripemd160, findSig, MethodCallOptions, PubKey } from 'scrypt-ts'
 import {
     myPrivateKey,
     myPublicKey,

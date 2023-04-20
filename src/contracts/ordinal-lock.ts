@@ -77,6 +77,7 @@ export class OrdinalLock extends SmartContract {
             // build change output
             .change(options.changeAddress)
 
+        // console.log("callTx: ", JSON.stringify(unsignedTx.toObject(), null, 2))
         return Promise.resolve({
             tx: unsignedTx,
             atInputIndex: 0,
