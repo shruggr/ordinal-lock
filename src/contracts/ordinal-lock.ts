@@ -21,25 +21,21 @@ export class OrdinalLock extends SmartContract {
     seller: PubKeyHash
 
     @prop()
-    payScript: ByteString
+    payOut: ByteString
 
-    @prop()
-    paySats: bigint
-
-    constructor(seller: PubKeyHash, payScript: ByteString, paySats: bigint) {
+    constructor(seller: PubKeyHash, payOut: ByteString) {
         super(...arguments)
 
         this.seller = seller
-        this.payScript = payScript
-        this.paySats = paySats
+        this.payOut = payOut
     }
 
     @method(SigHash.ANYONECANPAY_ALL)
     public purchase(buyerScript: ByteString) {
         assert(
             hash256(
-                Utils.buildOutput(buyerScript, 1n) +
-                    Utils.buildOutput(this.payScript, this.paySats) +
+                Utils.buildOutput(buyerScript, this.ctx.utxo.value) +
+                    this.payOut +
                     this.buildChangeOutput()
             ) == this.ctx.hashOutputs,
             'bad outputs'
@@ -57,9 +53,10 @@ export class OrdinalLock extends SmartContract {
         options: MethodCallOptions<OrdinalLock>,
         buyerScript: ByteString
     ): Promise<ContractTransaction> {
+        const input = current.buildContractInput()
         const unsignedTx: bsv.Transaction = new bsv.Transaction()
             // add contract input
-            .addInput(current.buildContractInput(options.fromUTXO))
+            .addInput(input)
             // build next instance output
             .addOutput(
                 new bsv.Transaction.Output({
@@ -69,13 +66,17 @@ export class OrdinalLock extends SmartContract {
             )
             // build payment output
             .addOutput(
-                new bsv.Transaction.Output({
-                    script: new bsv.Script(current.payScript),
-                    satoshis: Number(current.paySats),
-                })
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(current.payOut, 'hex')
+                    )
+                )
             )
+
+        if (options.changeAddress) {
             // build change output
-            .change(options.changeAddress)
+            unsignedTx.change(options.changeAddress)
+        }
 
         // console.log("callTx: ", JSON.stringify(unsignedTx.toObject(), null, 2))
         return Promise.resolve({

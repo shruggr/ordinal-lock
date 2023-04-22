@@ -8,15 +8,20 @@ import {
     myAddress,
 } from '../utils/privateKey'
 
-const payScript = bsv.Script.fromAddress(myAddress).toHex()
-const paySats = 1000n
+const payScript = bsv.Script.fromAddress(myAddress)
+// const paySats = 1000n
+const payOut = new bsv.Transaction.Output({
+    script: payScript,
+    satoshis: 1000,
+})
+    .toBufferWriter()
+    .toBuffer()
 
 async function main() {
     await OrdinalLock.compile()
     let instance = new OrdinalLock(
         Ripemd160(myPublicKeyHash.toString('hex')),
-        payScript,
-        paySats
+        payOut.toString('hex')
     )
     await instance.connect(getDefaultSigner(myPrivateKey))
 
@@ -38,8 +43,7 @@ async function main() {
 
     instance = new OrdinalLock(
         Ripemd160(myPublicKeyHash.toString('hex')),
-        payScript,
-        paySats
+        payOut.toString('hex')
     )
     await instance.connect(getDefaultSigner(myPrivateKey))
     instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)

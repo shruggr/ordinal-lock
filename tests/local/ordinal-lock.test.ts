@@ -5,10 +5,11 @@ import {
     MethodCallOptions,
     PubKey,
     Ripemd160,
+    SmartContract,
     TransactionResponse,
 } from 'scrypt-ts'
 import { OrdinalLock } from '../../src/contracts/ordinal-lock'
-import { getDummySigner, randomPrivateKey } from './utils/txHelper'
+import { dummyUTXO, getDummySigner, randomPrivateKey } from './utils/txHelper'
 import chaiAsPromised from 'chai-as-promised'
 use(chaiAsPromised)
 
@@ -17,8 +18,12 @@ const [badPriv, badPub, badPKH, badAdd] = randomPrivateKey()
 
 describe('Test SmartContract `OrdinalLock`', () => {
     let instance: OrdinalLock
-    const payScript = bsv.Script.fromAddress(sellerAdd)
-    const paySats = 1000n
+    const payOut = new bsv.Transaction.Output({
+        script: bsv.Script.fromAddress(sellerAdd),
+        satoshis: 1000,
+    })
+        .toBufferWriter()
+        .toBuffer()
     let deployTx: TransactionResponse
 
     before(async () => {
@@ -26,8 +31,7 @@ describe('Test SmartContract `OrdinalLock`', () => {
 
         instance = new OrdinalLock(
             Ripemd160(sellerPKH.toString('hex')),
-            payScript.toHex(),
-            paySats
+            payOut.toString('hex')
         )
 
         instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
@@ -75,10 +79,8 @@ describe('Test SmartContract `OrdinalLock`', () => {
 
     it('should pass the purchase method unit test successfully.', async () => {
         const { tx: callTx, atInputIndex } = await instance.methods.purchase(
-            payScript.toHex(),
-            {
-                changeAddress: sellerAdd,
-            } as MethodCallOptions<OrdinalLock>
+            payOut.toString('hex'),
+            { changeAddress: sellerAdd }
         )
         const result = callTx.verifyScript(atInputIndex)
         expect(result.success, result.error).to.eq(true)
