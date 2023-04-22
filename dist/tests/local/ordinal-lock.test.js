@@ -16,7 +16,9 @@ describe('Test SmartContract `OrdinalLock`', () => {
     const payOut = new scrypt_ts_1.bsv.Transaction.Output({
         script: scrypt_ts_1.bsv.Script.fromAddress(sellerAdd),
         satoshis: 1000,
-    }).toBufferWriter().toBuffer();
+    })
+        .toBufferWriter()
+        .toBuffer();
     let deployTx;
     before(async () => {
         await ordinal_lock_1.OrdinalLock.compile();
@@ -44,8 +46,8 @@ describe('Test SmartContract `OrdinalLock`', () => {
         })).to.be.rejectedWith('signature check failed');
     });
     it('should pass the purchase method unit test successfully.', async () => {
-        let { tx: callTx, atInputIndex } = await instance.methods.purchase(payOut.toString('hex'), { changeAddress: sellerAdd, });
-        let result = callTx.verifyScript(atInputIndex);
+        const { tx: callTx, atInputIndex } = await instance.methods.purchase(payOut.toString('hex'), { changeAddress: sellerAdd });
+        const result = callTx.verifyScript(atInputIndex);
         (0, chai_1.expect)(result.success, result.error).to.eq(true);
     });
     it('should fail the purchase method unit test bad payOut.', async () => {

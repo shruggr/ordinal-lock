@@ -8,8 +8,10 @@ const payScript = scrypt_ts_1.bsv.Script.fromAddress(privateKey_1.myAddress);
 // const paySats = 1000n
 const payOut = new scrypt_ts_1.bsv.Transaction.Output({
     script: payScript,
-    satoshis: 1000
-}).toBufferWriter().toBuffer();
+    satoshis: 1000,
+})
+    .toBufferWriter()
+    .toBuffer();
 async function main() {
     await ordinal_lock_1.OrdinalLock.compile();
     let instance = new ordinal_lock_1.OrdinalLock((0, scrypt_ts_1.Ripemd160)(privateKey_1.myPublicKeyHash.toString('hex')), payOut.toString('hex'));

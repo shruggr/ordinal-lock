@@ -55,8 +55,6 @@ export class OrdinalLock extends SmartContract {
     ): Promise<ContractTransaction> {
         const input = current.buildContractInput()
         const unsignedTx: bsv.Transaction = new bsv.Transaction()
-            // add contract input
-            .addInput(input)
             // build next instance output
             .addOutput(
                 new bsv.Transaction.Output({
@@ -72,6 +70,8 @@ export class OrdinalLock extends SmartContract {
                     )
                 )
             )
+            // add contract input
+            .addInput(input)
 
         if (options.changeAddress) {
             // build change output

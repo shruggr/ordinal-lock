@@ -26,15 +26,15 @@ class OrdinalLock extends scrypt_ts_1.SmartContract {
     static purchaseTxBuilder(current, options, buyerScript) {
         const input = current.buildContractInput();
         const unsignedTx = new scrypt_ts_1.bsv.Transaction()
-            // add contract input
-            .addInput(input)
             // build next instance output
             .addOutput(new scrypt_ts_1.bsv.Transaction.Output({
             script: new scrypt_ts_1.bsv.Script(buyerScript),
             satoshis: current.balance,
         }))
             // build payment output
-            .addOutput(scrypt_ts_1.bsv.Transaction.Output.fromBufferReader(new scrypt_ts_1.bsv.encoding.BufferReader(Buffer.from(current.payOut, 'hex'))));
+            .addOutput(scrypt_ts_1.bsv.Transaction.Output.fromBufferReader(new scrypt_ts_1.bsv.encoding.BufferReader(Buffer.from(current.payOut, 'hex'))))
+            // add contract input
+            .addInput(input);
         if (options.changeAddress) {
             // build change output
             unsignedTx.change(options.changeAddress);
