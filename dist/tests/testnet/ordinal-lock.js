@@ -16,7 +16,7 @@ async function main() {
     await ordinal_lock_1.OrdinalLock.compile();
     let instance = new ordinal_lock_1.OrdinalLock((0, scrypt_ts_1.Ripemd160)(privateKey_1.myPublicKeyHash.toString('hex')), payOut.toString('hex'));
     await instance.connect((0, txHelper_1.getDefaultSigner)(privateKey_1.myPrivateKey));
-    instance.bindTxBuilder('purchase', ordinal_lock_1.OrdinalLock.purchaseTxBuilder);
+    // instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
     // contract deployment
     let deployTx = await instance.deploy(1);
     console.log('OrdinalLock contract deployed: ', deployTx.id);
@@ -27,7 +27,7 @@ async function main() {
     console.log('OrdinalLock contract `cancel` called: ', cancelTx.id);
     instance = new ordinal_lock_1.OrdinalLock((0, scrypt_ts_1.Ripemd160)(privateKey_1.myPublicKeyHash.toString('hex')), payOut.toString('hex'));
     await instance.connect((0, txHelper_1.getDefaultSigner)(privateKey_1.myPrivateKey));
-    instance.bindTxBuilder('purchase', ordinal_lock_1.OrdinalLock.purchaseTxBuilder);
+    // instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
     // contract deployment
     deployTx = await instance.deploy(1);
     console.log('OrdinalLock contract deployed: ', deployTx.id);

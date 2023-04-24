@@ -25,7 +25,7 @@ async function main() {
     )
     await instance.connect(getDefaultSigner(myPrivateKey))
 
-    instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
+    // instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
 
     // contract deployment
     let deployTx = await instance.deploy(1)
@@ -46,7 +46,7 @@ async function main() {
         payOut.toString('hex')
     )
     await instance.connect(getDefaultSigner(myPrivateKey))
-    instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
+    // instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
 
     // contract deployment
     deployTx = await instance.deploy(1)

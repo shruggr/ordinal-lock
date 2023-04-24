@@ -1,14 +1,14 @@
 
 contract OrdinalLock {
   Ripemd160 seller;
-  bytes payOut;
-  constructor(Ripemd160 seller, bytes payOut) {
+  bytes payOutput;
+  constructor(Ripemd160 seller, bytes payOutput) {
     this.seller = seller;
-    this.payOut = payOut;
+    this.payOutput = payOutput;
   }
-  public function purchase(bytes buyerScript, SigHashPreimage __scrypt_ts_txPreimage, int __scrypt_ts_changeAmount, Ripemd160 __scrypt_ts_changeAddress) {
+  public function purchase(bytes selfOutput, bytes trailingOutputs, SigHashPreimage __scrypt_ts_txPreimage) {
     require(Tx.checkPreimageSigHashType(__scrypt_ts_txPreimage, SigHashType(b'c1')));
-    require(hash256(Utils.buildOutput(buyerScript, SigHash.value(__scrypt_ts_txPreimage)) + this.payOut + Utils.buildOutput(Utils.buildPublicKeyHashScript(__scrypt_ts_changeAddress), __scrypt_ts_changeAmount)) == SigHash.hashOutputs(__scrypt_ts_txPreimage));
+    require(hash256(selfOutput + this.payOutput + trailingOutputs) == SigHash.hashOutputs(__scrypt_ts_txPreimage));
   }
   public function cancel(Sig sig, PubKey pubkey) {
     require(this.seller == hash160(pubkey));
