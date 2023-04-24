@@ -4,6 +4,7 @@
   "scryptfile": "src/contracts/ordinal-lock.scrypt",
   "sourceMapFile": "src/contracts/ordinal-lock.scrypt.map",
   "ctxMethods": [
-    "purchase"
+    "purchase",
+    "purchaseWithChange"
   ]
 }

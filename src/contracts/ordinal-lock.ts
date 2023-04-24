@@ -10,6 +10,9 @@ import {
     SmartContract,
     Sig,
     SigHash,
+    MethodCallOptions,
+    ContractTransaction,
+    bsv,
 } from 'scrypt-ts'
 
 export class OrdinalLock extends SmartContract {
@@ -27,10 +30,22 @@ export class OrdinalLock extends SmartContract {
     }
 
     @method(SigHash.ANYONECANPAY_ALL)
-    public purchase(selfOutput: ByteString, trailingOutputs: ByteString) {
+    public purchase(selfOutput: ByteString) {
+        const outputs: ByteString = selfOutput + this.payOutput
         assert(
-            hash256(selfOutput + this.payOutput + trailingOutputs) ==
-                this.ctx.hashOutputs
+            hash256(outputs) == this.ctx.hashOutputs,
+            'hashOutputs check failed'
+        )
+    }
+
+    @method(SigHash.ANYONECANPAY_ALL)
+    public purchaseWithChange(selfOutput: ByteString) {
+        const outputs: ByteString =
+            selfOutput + this.payOutput + this.buildChangeOutput()
+        this.debug.diffOutputs(outputs)
+        assert(
+            hash256(outputs) == this.ctx.hashOutputs,
+            'hashOutputs check failed'
         )
     }
 
@@ -38,5 +53,79 @@ export class OrdinalLock extends SmartContract {
     public cancel(sig: Sig, pubkey: PubKey) {
         assert(this.seller == hash160(pubkey), 'bad seller')
         assert(this.checkSig(sig, pubkey), 'signature check failed')
+    }
+
+    static purchaseTxBuilder(
+        current: OrdinalLock,
+        options: MethodCallOptions<OrdinalLock>,
+        buyerOutput: ByteString
+    ): Promise<ContractTransaction> {
+        const unsignedTx: bsv.Transaction = new bsv.Transaction()
+            // add contract input
+            .addInput(current.buildContractInput(options.fromUTXO))
+            // build next instance output
+            .addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(buyerOutput, 'hex')
+                    )
+                )
+            )
+            // build payment output
+            .addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(current.payOutput, 'hex')
+                    )
+                )
+            )
+
+        if (options.changeAddress) {
+            // build change output
+            unsignedTx.change(options.changeAddress)
+        }
+
+        return Promise.resolve({
+            tx: unsignedTx,
+            atInputIndex: 0,
+            nexts: [],
+        })
+    }
+
+    static purchaseWithChangeTxBuilder(
+        current: OrdinalLock,
+        options: MethodCallOptions<OrdinalLock>,
+        buyerOutput: ByteString
+    ): Promise<ContractTransaction> {
+        const unsignedTx: bsv.Transaction = new bsv.Transaction()
+            // add contract input
+            .addInput(current.buildContractInput(options.fromUTXO))
+            // build next instance output
+            .addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(buyerOutput, 'hex')
+                    )
+                )
+            )
+            // build payment output
+            .addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(current.payOutput, 'hex')
+                    )
+                )
+            )
+
+        if (options.changeAddress) {
+            // build change output
+            unsignedTx.change(options.changeAddress)
+        }
+
+        return Promise.resolve({
+            tx: unsignedTx,
+            atInputIndex: 0,
+            nexts: [],
+        })
     }
 }

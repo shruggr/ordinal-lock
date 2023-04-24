@@ -19,9 +19,17 @@ const [badPriv, badPub, badPKH, badAdd] = randomPrivateKey()
 
 describe('Test SmartContract `OrdinalLock`', () => {
     let instance: OrdinalLock
+    const sellerScript = bsv.Script.fromAddress(sellerAdd)
     const payOut = new bsv.Transaction.Output({
-        script: bsv.Script.fromAddress(sellerAdd),
+        script: sellerScript,
         satoshis: 1000,
+    })
+        .toBufferWriter()
+        .toBuffer()
+
+    const buyerOut = new bsv.Transaction.Output({
+        script: sellerScript,
+        satoshis: 1,
     })
         .toBufferWriter()
         .toBuffer()
@@ -35,7 +43,11 @@ describe('Test SmartContract `OrdinalLock`', () => {
             payOut.toString('hex')
         )
 
-        // instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
+        instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
+        instance.bindTxBuilder(
+            'purchaseWithChange',
+            OrdinalLock.purchaseWithChangeTxBuilder
+        )
 
         await instance.connect(getDummySigner([sellerPriv]))
         deployTx = await instance.deploy(1)
@@ -78,47 +90,114 @@ describe('Test SmartContract `OrdinalLock`', () => {
         ).to.be.rejectedWith('signature check failed')
     })
 
+    it('should pass the purchase method unit test successfully', async () => {
+        const { tx: callTx, atInputIndex } = await instance.methods.purchase(
+            buyerOut.toString('hex'),
+            {} as MethodCallOptions<OrdinalLock>
+        )
+
+        const result = callTx.verifyScript(atInputIndex)
+        expect(result.success, result.error).to.eq(true)
+    })
+
+    it('should pass the purchaseWithChange method unit test successfully with change', async () => {
+        const { tx: callTx, atInputIndex } =
+            await instance.methods.purchaseWithChange(
+                buyerOut.toString('hex'),
+                { changeAddress: sellerAdd } as MethodCallOptions<OrdinalLock>
+            )
+
+        const result = callTx.verifyScript(atInputIndex)
+        expect(result.success, result.error).to.eq(true)
+    })
+
+    it('should pass the purchaseWithChange method unit test successfully without change', async () => {
+        const { tx: callTx, atInputIndex } =
+            await instance.methods.purchaseWithChange(
+                buyerOut.toString('hex'),
+                {} as MethodCallOptions<OrdinalLock>
+            )
+
+        const result = callTx.verifyScript(atInputIndex)
+        expect(result.success, result.error).to.eq(true)
+    })
+
+    it('should return a partially-signed transaction', async () => {
+        const { tx: callTx, atInputIndex } =
+            await OrdinalLock.purchaseTxBuilder(
+                instance,
+                {},
+                buyerOut.toString('hex')
+            )
+
+        expect(callTx.inputs[0].script.toHex(), 'input script populated').to.eq(
+            ''
+        )
+
+        instance.signer.signTransaction(callTx)
+        expect(
+            callTx.inputs[0].script.toHex(),
+            'input script not populated'
+        ).to.not.eq('')
+    })
+
     it('should pass the purchase method unit test successfully.', async () => {
         const tx = new bsv.Transaction()
             .addOutput(
-                new bsv.Transaction.Output({
-                    script: new bsv.Script(sellerAdd),
-                    satoshis: instance.balance,
-                })
-            )
-            //         // build payment output
-            .addOutput(
                 bsv.Transaction.Output.fromBufferReader(
-                    new bsv.encoding.BufferReader(
-                        Buffer.from(instance.payOutput, 'hex')
-                    )
+                    new bsv.encoding.BufferReader(buyerOut)
                 )
             )
-            //         // add contract input
+            .addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(payOut)
+                )
+            )
             .from({
                 txId: deployTx.id,
                 outputIndex: 0,
-                script: deployTx.outputs[0].script.toString(),
+                script: deployTx.outputs[0].script.toHex(),
                 satoshis: deployTx.outputs[0].satoshis,
             })
+        // .from(dummyUTXO)
+        // .change(sellerAdd)
 
-        // const asm = `${tx.outputs[0].toBufferWriter().toBuffer().toString('hex')} OP_0 ${tx.getPreimage(0, 0xc1, false)} OP_0`
-        // const preimage = tx.pre
-        const script = bsv.Script.fromBuffer(Buffer.alloc(0))
-            .add(tx.outputs[0].toBufferWriter().toBuffer())
-            .add(bsv.Opcode.OP_0)
-            .add(
-                bsv.Transaction.Sighash.sighashPreimage(
-                    tx,
-                    0xc1,
-                    0,
-                    deployTx.outputs[0].script,
-                    new bsv.crypto.BN(deployTx.outputs[0].satoshis),
-                    0x40
-                )
-            )
-            .add(bsv.Opcode.OP_0)
-        tx.inputs[0].setScript(script)
+        // build input first time to get size in order to properly calculate fee/change
+        const preimage = bsv.Transaction.Sighash.sighashPreimage(
+            tx,
+            0xc1,
+            0,
+            deployTx.outputs[0].script,
+            new bsv.crypto.BN(deployTx.outputs[0].satoshis),
+            bsv.Script.Interpreter.SCRIPT_ENABLE_SIGHASH_FORKID
+        )
+        tx.inputs[0].setScript(
+            bsv.Script.fromBuffer(Buffer.alloc(0))
+                .add(buyerOut)
+                .add(preimage)
+                .add(bsv.Opcode.OP_0)
+        )
+
+        // set appropriate change output
+        // tx.change(sellerAdd)
+
+        // build input 2nd time to get with proper change output
+        // preimage = bsv.Transaction.Sighash.sighashPreimage(
+        //     tx,
+        //     0xc1,
+        //     0,
+        //     deployTx.outputs[0].script,
+        //     new bsv.crypto.BN(deployTx.outputs[0].satoshis),
+        //     bsv.Script.Interpreter.SCRIPT_ENABLE_SIGHASH_FORKID
+        // );
+        // tx.inputs[0].setScript(bsv.Script.fromBuffer(Buffer.alloc(0))
+        //     .add(buyerOut)
+        //     .add(preimage)
+        //     // .add(tx.getChangeAmount())
+        //     .add(new bsv.crypto.BN(tx.getChangeAmount()).toBuffer())
+        //     .add(tx.getChangeAddress().hashBuffer)
+        //     .add(bsv.Opcode.OP_0)
+        // )
 
         // console.log('Tx: ', JSON.stringify(tx))
         const result = tx.verifyScript(0)
