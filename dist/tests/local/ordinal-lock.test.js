@@ -68,30 +68,13 @@ describe('Test SmartContract `OrdinalLock`', () => {
             .add(scrypt_ts_1.bsv.Transaction.Sighash.sighashPreimage(tx, 0xc1, 0, deployTx.outputs[0].script, new scrypt_ts_1.bsv.crypto.BN(deployTx.outputs[0].satoshis), 0x40))
             .add(scrypt_ts_1.bsv.Opcode.OP_0);
         tx.inputs[0].setScript(script);
-        // const { tx: callTx, atInputIndex } = await OrdinalLock.purchaseTxBuilder(
-        //     instance,
-        //     {},
-        //     bsv.Script.fromAddress(sellerAdd).toHex()
-        // )
-        // callTx.from(dummyUTXO)
-        // callTx.change(sellerAdd)
-        // callTx.inputs[0] = instance.buildContractInput()
-        // console.log("callTx: ", JSON.stringify(callTx))
-        // await instance.signer.signTransaction(callTx)
-        console.log("Tx: ", JSON.stringify(tx));
+        // console.log('Tx: ', JSON.stringify(tx))
         const result = tx.verifyScript(0);
         (0, chai_1.expect)(result.success, result.error).to.eq(true);
     });
     it('should fail the purchase method unit test bad payOut.', async () => {
         const badScript = scrypt_ts_1.bsv.Script.fromAddress(badAdd).toHex();
-        (0, chai_1.expect)(instance.methods.purchase(badScript, {
-            fromUTXO: {
-                outputIndex: 0,
-                txId: deployTx.id,
-                satoshis: deployTx.outputs[0].satoshis,
-                script: deployTx.outputs[0].script.toString(),
-            },
-        })).to.be.rejectedWith('bad self output');
+        (0, chai_1.expect)(instance.methods.purchase(badScript, {})).to.be.rejectedWith('bad self output');
     });
 });
 //# sourceMappingURL=ordinal-lock.test.js.map

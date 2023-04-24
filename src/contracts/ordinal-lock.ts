@@ -39,41 +39,4 @@ export class OrdinalLock extends SmartContract {
         assert(this.seller == hash160(pubkey), 'bad seller')
         assert(this.checkSig(sig, pubkey), 'signature check failed')
     }
-
-    // static purchaseTxBuilder(
-    //     current: OrdinalLock,
-    //     options: MethodCallOptions<OrdinalLock>,
-    //     buyerScript: ByteString
-    // ): Promise<ContractTransaction> {
-    //     const unsignedTx: bsv.Transaction = new bsv.Transaction()
-    //         // build next instance output
-    //         .addOutput(
-    //             new bsv.Transaction.Output({
-    //                 script: new bsv.Script(buyerScript),
-    //                 satoshis: current.balance,
-    //             })
-    //         )
-    //         // build payment output
-    //         .addOutput(
-    //             bsv.Transaction.Output.fromBufferReader(
-    //                 new bsv.encoding.BufferReader(
-    //                     Buffer.from(current.payOut, 'hex')
-    //                 )
-    //             )
-    //         )
-    //         // add contract input
-    //         .addInput(current.buildContractInput())
-
-    //     if (options.changeAddress) {
-    //         // build change output
-    //         unsignedTx.change(options.changeAddress)
-    //         unsignedTx.inputs[0] = current.buildContractInput()
-    //     }
-
-    //     return Promise.resolve({
-    //         tx: unsignedTx,
-    //         atInputIndex: 0,
-    //         nexts: [],
-    //     })
-    // }
 }

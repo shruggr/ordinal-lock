@@ -120,7 +120,7 @@ describe('Test SmartContract `OrdinalLock`', () => {
             .add(bsv.Opcode.OP_0)
         tx.inputs[0].setScript(script)
 
-        console.log('Tx: ', JSON.stringify(tx))
+        // console.log('Tx: ', JSON.stringify(tx))
         const result = tx.verifyScript(0)
         expect(result.success, result.error).to.eq(true)
     })
@@ -128,14 +128,10 @@ describe('Test SmartContract `OrdinalLock`', () => {
     it('should fail the purchase method unit test bad payOut.', async () => {
         const badScript = bsv.Script.fromAddress(badAdd).toHex()
         expect(
-            instance.methods.purchase(badScript, {
-                fromUTXO: {
-                    outputIndex: 0,
-                    txId: deployTx.id,
-                    satoshis: deployTx.outputs[0].satoshis,
-                    script: deployTx.outputs[0].script.toString(),
-                },
-            } as MethodCallOptions<OrdinalLock>)
+            instance.methods.purchase(
+                badScript,
+                {} as MethodCallOptions<OrdinalLock>
+            )
         ).to.be.rejectedWith('bad self output')
     })
 })
