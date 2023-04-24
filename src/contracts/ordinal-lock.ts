@@ -30,19 +30,8 @@ export class OrdinalLock extends SmartContract {
     }
 
     @method(SigHash.ANYONECANPAY_ALL)
-    public purchase(selfOutput: ByteString) {
-        const outputs: ByteString = selfOutput + this.payOutput
-        assert(
-            hash256(outputs) == this.ctx.hashOutputs,
-            'hashOutputs check failed'
-        )
-    }
-
-    @method(SigHash.ANYONECANPAY_ALL)
-    public purchaseWithChange(selfOutput: ByteString) {
-        const outputs: ByteString =
-            selfOutput + this.payOutput + this.buildChangeOutput()
-        this.debug.diffOutputs(outputs)
+    public purchase(selfOutput: ByteString, changeOutput: ByteString) {
+        const outputs: ByteString = selfOutput + this.payOutput + changeOutput
         assert(
             hash256(outputs) == this.ctx.hashOutputs,
             'hashOutputs check failed'
@@ -58,7 +47,8 @@ export class OrdinalLock extends SmartContract {
     static purchaseTxBuilder(
         current: OrdinalLock,
         options: MethodCallOptions<OrdinalLock>,
-        buyerOutput: ByteString
+        buyerOutput: ByteString,
+        changeOutput: ByteString
     ): Promise<ContractTransaction> {
         const unsignedTx: bsv.Transaction = new bsv.Transaction()
             // add contract input
@@ -80,9 +70,14 @@ export class OrdinalLock extends SmartContract {
                 )
             )
 
-        if (options.changeAddress) {
-            // build change output
-            unsignedTx.change(options.changeAddress)
+        if (changeOutput) {
+            unsignedTx.addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(changeOutput, 'hex')
+                    )
+                )
+            )
         }
 
         return Promise.resolve({
@@ -92,40 +87,40 @@ export class OrdinalLock extends SmartContract {
         })
     }
 
-    static purchaseWithChangeTxBuilder(
-        current: OrdinalLock,
-        options: MethodCallOptions<OrdinalLock>,
-        buyerOutput: ByteString
-    ): Promise<ContractTransaction> {
-        const unsignedTx: bsv.Transaction = new bsv.Transaction()
-            // add contract input
-            .addInput(current.buildContractInput(options.fromUTXO))
-            // build next instance output
-            .addOutput(
-                bsv.Transaction.Output.fromBufferReader(
-                    new bsv.encoding.BufferReader(
-                        Buffer.from(buyerOutput, 'hex')
-                    )
-                )
-            )
-            // build payment output
-            .addOutput(
-                bsv.Transaction.Output.fromBufferReader(
-                    new bsv.encoding.BufferReader(
-                        Buffer.from(current.payOutput, 'hex')
-                    )
-                )
-            )
+    // static purchaseWithChangeTxBuilder(
+    //     current: OrdinalLock,
+    //     options: MethodCallOptions<OrdinalLock>,
+    //     buyerOutput: ByteString
+    // ): Promise<ContractTransaction> {
+    //     const unsignedTx: bsv.Transaction = new bsv.Transaction()
+    //         // add contract input
+    //         .addInput(current.buildContractInput(options.fromUTXO))
+    //         // build next instance output
+    //         .addOutput(
+    //             bsv.Transaction.Output.fromBufferReader(
+    //                 new bsv.encoding.BufferReader(
+    //                     Buffer.from(buyerOutput, 'hex')
+    //                 )
+    //             )
+    //         )
+    //         // build payment output
+    //         .addOutput(
+    //             bsv.Transaction.Output.fromBufferReader(
+    //                 new bsv.encoding.BufferReader(
+    //                     Buffer.from(current.payOutput, 'hex')
+    //                 )
+    //             )
+    //         )
 
-        if (options.changeAddress) {
-            // build change output
-            unsignedTx.change(options.changeAddress)
-        }
+    //     if (options.changeAddress) {
+    //         // build change output
+    //         unsignedTx.change(options.changeAddress)
+    //     }
 
-        return Promise.resolve({
-            tx: unsignedTx,
-            atInputIndex: 0,
-            nexts: [],
-        })
-    }
+    //     return Promise.resolve({
+    //         tx: unsignedTx,
+    //         atInputIndex: 0,
+    //         nexts: [],
+    //     })
+    // }
 }

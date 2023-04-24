@@ -1,6 +1,6 @@
 {
   "name": "ordinal-lock",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A demo sCrypt smart contract.",
   "author": "",
   "scripts": {
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "dotenv": "^16.0.3",
-    "scrypt-ts": "beta"
+    "scrypt-ts": "=0.2.1-beta.2"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
