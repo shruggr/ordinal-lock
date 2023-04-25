@@ -14,12 +14,30 @@ class OrdinalLock extends scrypt_ts_1.SmartContract {
         this.seller = seller;
         this.payOutput = payOutput;
     }
-    purchase(selfOutput, trailingOutputs) {
-        (0, scrypt_ts_1.assert)((0, scrypt_ts_1.hash256)(selfOutput + this.payOutput + trailingOutputs) == this.ctx.hashOutputs);
+    purchase(selfOutput, changeOutput) {
+        const outputs = selfOutput + this.payOutput + changeOutput;
+        (0, scrypt_ts_1.assert)((0, scrypt_ts_1.hash256)(outputs) == this.ctx.hashOutputs, 'hashOutputs check failed');
     }
     cancel(sig, pubkey) {
         (0, scrypt_ts_1.assert)(this.seller == (0, scrypt_ts_1.hash160)(pubkey), 'bad seller');
         (0, scrypt_ts_1.assert)(this.checkSig(sig, pubkey), 'signature check failed');
+    }
+    static purchaseTxBuilder(current, options, buyerOutput, changeOutput) {
+        const unsignedTx = new scrypt_ts_1.bsv.Transaction()
+            // add contract input
+            .addInput(current.buildContractInput(options.fromUTXO))
+            // build next instance output
+            .addOutput(scrypt_ts_1.bsv.Transaction.Output.fromBufferReader(new scrypt_ts_1.bsv.encoding.BufferReader(Buffer.from(buyerOutput, 'hex'))))
+            // build payment output
+            .addOutput(scrypt_ts_1.bsv.Transaction.Output.fromBufferReader(new scrypt_ts_1.bsv.encoding.BufferReader(Buffer.from(current.payOutput, 'hex'))));
+        if (changeOutput) {
+            unsignedTx.addOutput(scrypt_ts_1.bsv.Transaction.Output.fromBufferReader(new scrypt_ts_1.bsv.encoding.BufferReader(Buffer.from(changeOutput, 'hex'))));
+        }
+        return Promise.resolve({
+            tx: unsignedTx,
+            atInputIndex: 0,
+            nexts: [],
+        });
     }
 }
 __decorate([

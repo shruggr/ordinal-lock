@@ -1,12 +1,14 @@
 import { expect, use } from 'chai'
 import {
     bsv,
+    buildOpreturnScript,
     findSig,
     MethodCallOptions,
     PubKey,
     Ripemd160,
     SigHash,
     SmartContract,
+    toHex,
     TransactionResponse,
 } from 'scrypt-ts'
 import { OrdinalLock } from '../../src/contracts/ordinal-lock'
@@ -19,9 +21,17 @@ const [badPriv, badPub, badPKH, badAdd] = randomPrivateKey()
 
 describe('Test SmartContract `OrdinalLock`', () => {
     let instance: OrdinalLock
+    const sellerScript = bsv.Script.fromAddress(sellerAdd)
     const payOut = new bsv.Transaction.Output({
-        script: bsv.Script.fromAddress(sellerAdd),
+        script: sellerScript,
         satoshis: 1000,
+    })
+        .toBufferWriter()
+        .toBuffer()
+
+    const buyerOut = new bsv.Transaction.Output({
+        script: sellerScript,
+        satoshis: 1,
     })
         .toBufferWriter()
         .toBuffer()
@@ -35,7 +45,7 @@ describe('Test SmartContract `OrdinalLock`', () => {
             payOut.toString('hex')
         )
 
-        // instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
+        instance.bindTxBuilder('purchase', OrdinalLock.purchaseTxBuilder)
 
         await instance.connect(getDummySigner([sellerPriv]))
         deployTx = await instance.deploy(1)
@@ -50,6 +60,7 @@ describe('Test SmartContract `OrdinalLock`', () => {
                 pubKeyOrAddrToSign: [sellerPub],
             } as MethodCallOptions<OrdinalLock>
         )
+
         const result = callTx.verifyScript(atInputIndex)
         expect(result.success, result.error).to.eq(true)
     })
@@ -78,51 +89,40 @@ describe('Test SmartContract `OrdinalLock`', () => {
         ).to.be.rejectedWith('signature check failed')
     })
 
-    it('should pass the purchase method unit test successfully.', async () => {
-        const tx = new bsv.Transaction()
-            .addOutput(
-                new bsv.Transaction.Output({
-                    script: new bsv.Script(sellerAdd),
-                    satoshis: instance.balance,
-                })
-            )
-            //         // build payment output
-            .addOutput(
-                bsv.Transaction.Output.fromBufferReader(
-                    new bsv.encoding.BufferReader(
-                        Buffer.from(instance.payOutput, 'hex')
-                    )
-                )
-            )
-            //         // add contract input
-            .from({
-                txId: deployTx.id,
-                outputIndex: 0,
-                script: deployTx.outputs[0].script.toString(),
-                satoshis: deployTx.outputs[0].satoshis,
-            })
+    it('should pass the purchase method unit test successfully', async () => {
+        const { tx: callTx, atInputIndex } = await instance.methods.purchase(
+            buyerOut.toString('hex'),
+            '',
+            {} as MethodCallOptions<OrdinalLock>
+        )
 
-        // const asm = `${tx.outputs[0].toBufferWriter().toBuffer().toString('hex')} OP_0 ${tx.getPreimage(0, 0xc1, false)} OP_0`
-        // const preimage = tx.pre
-        const script = bsv.Script.fromBuffer(Buffer.alloc(0))
-            .add(tx.outputs[0].toBufferWriter().toBuffer())
-            .add(bsv.Opcode.OP_0)
-            .add(
-                bsv.Transaction.Sighash.sighashPreimage(
-                    tx,
-                    0xc1,
-                    0,
-                    deployTx.outputs[0].script,
-                    new bsv.crypto.BN(deployTx.outputs[0].satoshis),
-                    0x40
-                )
-            )
-            .add(bsv.Opcode.OP_0)
-        tx.inputs[0].setScript(script)
-
-        // console.log('Tx: ', JSON.stringify(tx))
-        const result = tx.verifyScript(0)
+        const result = callTx.verifyScript(atInputIndex)
         expect(result.success, result.error).to.eq(true)
+    })
+
+    it('should pass the purchase method unit test successfully with changeOutput', async () => {
+        const { tx: callTx, atInputIndex } = await instance.methods.purchase(
+            buyerOut.toString('hex'),
+            buyerOut.toString('hex'),
+            {} as MethodCallOptions<OrdinalLock>
+        )
+        const result = callTx.verifyScript(atInputIndex)
+        expect(result.success, result.error).to.eq(true)
+    })
+
+    it('should return a partially-signed transaction', async () => {
+        const { tx: callTx, atInputIndex } = await instance.methods.purchase(
+            buyerOut.toString('hex'),
+            '',
+            {
+                partiallySigned: true,
+                autoPayFee: false,
+            } as MethodCallOptions<OrdinalLock>
+        )
+        expect(
+            callTx.inputs[atInputIndex].script.toHex(),
+            'input script not populated'
+        ).to.not.eq('')
     })
 
     it('should fail the purchase method unit test bad payOut.', async () => {

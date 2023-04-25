@@ -10,6 +10,9 @@ import {
     SmartContract,
     Sig,
     SigHash,
+    MethodCallOptions,
+    ContractTransaction,
+    bsv,
 } from 'scrypt-ts'
 
 export class OrdinalLock extends SmartContract {
@@ -27,10 +30,11 @@ export class OrdinalLock extends SmartContract {
     }
 
     @method(SigHash.ANYONECANPAY_ALL)
-    public purchase(selfOutput: ByteString, trailingOutputs: ByteString) {
+    public purchase(selfOutput: ByteString, changeOutput: ByteString) {
+        const outputs: ByteString = selfOutput + this.payOutput + changeOutput
         assert(
-            hash256(selfOutput + this.payOutput + trailingOutputs) ==
-                this.ctx.hashOutputs
+            hash256(outputs) == this.ctx.hashOutputs,
+            'hashOutputs check failed'
         )
     }
 
@@ -38,5 +42,48 @@ export class OrdinalLock extends SmartContract {
     public cancel(sig: Sig, pubkey: PubKey) {
         assert(this.seller == hash160(pubkey), 'bad seller')
         assert(this.checkSig(sig, pubkey), 'signature check failed')
+    }
+
+    static purchaseTxBuilder(
+        current: OrdinalLock,
+        options: MethodCallOptions<OrdinalLock>,
+        buyerOutput: ByteString,
+        changeOutput: ByteString
+    ): Promise<ContractTransaction> {
+        const unsignedTx: bsv.Transaction = new bsv.Transaction()
+            // add contract input
+            .addInput(current.buildContractInput(options.fromUTXO))
+            // build next instance output
+            .addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(buyerOutput, 'hex')
+                    )
+                )
+            )
+            // build payment output
+            .addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(current.payOutput, 'hex')
+                    )
+                )
+            )
+
+        if (changeOutput) {
+            unsignedTx.addOutput(
+                bsv.Transaction.Output.fromBufferReader(
+                    new bsv.encoding.BufferReader(
+                        Buffer.from(changeOutput, 'hex')
+                    )
+                )
+            )
+        }
+
+        return Promise.resolve({
+            tx: unsignedTx,
+            atInputIndex: 0,
+            nexts: [],
+        })
     }
 }
