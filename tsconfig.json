@@ -16,6 +16,7 @@
     /* "strict": true,                                       Enable all strict type-checking options. */
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "sourceMap": true,
+    "declaration": true,
     "plugins": [
       {
         "transform": "scrypt-ts/dist/transformation/transformer",

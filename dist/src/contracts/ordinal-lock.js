@@ -14,9 +14,9 @@ class OrdinalLock extends scrypt_ts_1.SmartContract {
         this.seller = seller;
         this.payOutput = payOutput;
     }
-    purchase(selfOutput, changeOutput) {
-        const outputs = selfOutput + this.payOutput + changeOutput;
-        (0, scrypt_ts_1.assert)((0, scrypt_ts_1.hash256)(outputs) == this.ctx.hashOutputs, 'hashOutputs check failed');
+    purchase(selfOutput, trailingOutputs) {
+        (0, scrypt_ts_1.assert)((0, scrypt_ts_1.hash256)(selfOutput + this.payOutput + trailingOutputs) ==
+            this.ctx.hashOutputs);
     }
     cancel(sig, pubkey) {
         (0, scrypt_ts_1.assert)(this.seller == (0, scrypt_ts_1.hash160)(pubkey), 'bad seller');
