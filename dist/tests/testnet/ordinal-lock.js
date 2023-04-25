@@ -33,17 +33,19 @@ async function main() {
     const selfOutput = (0, scrypt_ts_1.toHex)(new scrypt_ts_1.bsv.Transaction.Output({
         script: new scrypt_ts_1.bsv.Script(privateKey_1.myAddress),
         satoshis: instance.balance,
-    }).toBufferWriter()
+    })
+        .toBufferWriter()
         .toBuffer());
     const trailingOutputs = (0, scrypt_ts_1.toHex)(new scrypt_ts_1.bsv.Transaction.Output({
-        script: (0, scrypt_ts_1.buildOpreturnScript)("00"),
+        script: (0, scrypt_ts_1.buildOpreturnScript)('00'),
         satoshis: instance.balance,
-    }).toBufferWriter()
+    })
+        .toBufferWriter()
         .toBuffer());
     const { tx: callTx, atInputIndex } = await instance.methods.purchase(selfOutput, trailingOutputs, {
         pubKeyOrAddrToSign: [privateKey_1.myPublicKey],
         partiallySigned: true,
-        autoPayFee: false
+        autoPayFee: false,
     });
     const result = callTx.verifyScript(atInputIndex);
     console.log('OrdinalLock contract `purchase` called: ', result);
@@ -52,10 +54,10 @@ async function main() {
     // now you have a partially Signed tx, send this tx to user , then user add a input, and sign it
     const userPrivateKey = scrypt_ts_1.bsv.PrivateKey.fromWIF('cS98v9dfvPsLUcpriCpiRw3tZ65sp77XjDr5ZJtnXUvQKHQiqtQL');
     const userSigner = new scrypt_ts_1.TestWallet(userPrivateKey, new scrypt_ts_1.DefaultProvider({
-        network: scrypt_ts_1.bsv.Networks.testnet
+        network: scrypt_ts_1.bsv.Networks.testnet,
     }));
     const utxos = await userSigner.listUnspent(userPrivateKey.toAddress(), {
-        minSatoshis: needSatoshiAsFee
+        minSatoshis: needSatoshiAsFee,
     });
     // add p2pkh input to pay fee
     callTx.from(utxos);

@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "dotenv": "^16.0.3",
-    "scrypt-ts": "=0.2.1-beta.2"
+    "scrypt-ts": "^0.2.1-beta.3"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",

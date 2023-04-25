@@ -60,6 +60,7 @@ describe('Test SmartContract `OrdinalLock`', () => {
                 pubKeyOrAddrToSign: [sellerPub],
             } as MethodCallOptions<OrdinalLock>
         )
+
         const result = callTx.verifyScript(atInputIndex)
         expect(result.success, result.error).to.eq(true)
     })
@@ -105,7 +106,6 @@ describe('Test SmartContract `OrdinalLock`', () => {
             buyerOut.toString('hex'),
             {} as MethodCallOptions<OrdinalLock>
         )
-
         const result = callTx.verifyScript(atInputIndex)
         expect(result.success, result.error).to.eq(true)
     })
@@ -119,7 +119,6 @@ describe('Test SmartContract `OrdinalLock`', () => {
                 autoPayFee: false,
             } as MethodCallOptions<OrdinalLock>
         )
-
         expect(
             callTx.inputs[atInputIndex].script.toHex(),
             'input script not populated'

@@ -86,41 +86,4 @@ export class OrdinalLock extends SmartContract {
             nexts: [],
         })
     }
-
-    // static purchaseWithChangeTxBuilder(
-    //     current: OrdinalLock,
-    //     options: MethodCallOptions<OrdinalLock>,
-    //     buyerOutput: ByteString
-    // ): Promise<ContractTransaction> {
-    //     const unsignedTx: bsv.Transaction = new bsv.Transaction()
-    //         // add contract input
-    //         .addInput(current.buildContractInput(options.fromUTXO))
-    //         // build next instance output
-    //         .addOutput(
-    //             bsv.Transaction.Output.fromBufferReader(
-    //                 new bsv.encoding.BufferReader(
-    //                     Buffer.from(buyerOutput, 'hex')
-    //                 )
-    //             )
-    //         )
-    //         // build payment output
-    //         .addOutput(
-    //             bsv.Transaction.Output.fromBufferReader(
-    //                 new bsv.encoding.BufferReader(
-    //                     Buffer.from(current.payOutput, 'hex')
-    //                 )
-    //             )
-    //         )
-
-    //     if (options.changeAddress) {
-    //         // build change output
-    //         unsignedTx.change(options.changeAddress)
-    //     }
-
-    //     return Promise.resolve({
-    //         tx: unsignedTx,
-    //         atInputIndex: 0,
-    //         nexts: [],
-    //     })
-    // }
 }

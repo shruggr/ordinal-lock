@@ -53,7 +53,7 @@ describe('Test SmartContract `OrdinalLock`', () => {
         })).to.be.rejectedWith('signature check failed');
     });
     it('should pass the purchase method unit test successfully', async () => {
-        const { tx: callTx, atInputIndex } = await instance.methods.purchase(buyerOut.toString('hex'), "", {});
+        const { tx: callTx, atInputIndex } = await instance.methods.purchase(buyerOut.toString('hex'), '', {});
         const result = callTx.verifyScript(atInputIndex);
         (0, chai_1.expect)(result.success, result.error).to.eq(true);
     });
@@ -63,7 +63,7 @@ describe('Test SmartContract `OrdinalLock`', () => {
         (0, chai_1.expect)(result.success, result.error).to.eq(true);
     });
     it('should return a partially-signed transaction', async () => {
-        const { tx: callTx, atInputIndex } = await instance.methods.purchase(buyerOut.toString('hex'), "", {
+        const { tx: callTx, atInputIndex } = await instance.methods.purchase(buyerOut.toString('hex'), '', {
             partiallySigned: true,
             autoPayFee: false,
         });

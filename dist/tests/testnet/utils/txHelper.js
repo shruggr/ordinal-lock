@@ -23,7 +23,7 @@ exports.randomPrivateKey = randomPrivateKey;
 function getDefaultSigner(privateKey) {
     if (global.testnetSigner === undefined) {
         global.testnetSigner = new scrypt_ts_1.TestWallet(privateKey_1.myPrivateKey, new scrypt_ts_1.DefaultProvider({
-            network: scrypt_ts_1.bsv.Networks.testnet
+            network: scrypt_ts_1.bsv.Networks.testnet,
         }));
     }
     if (privateKey !== undefined) {
