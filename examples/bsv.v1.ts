@@ -65,6 +65,7 @@ function buildPurchase(listingTx): bsv.Transaction {
     tx.addOutput(payOutput)
     satsOut += payOutput.satoshis
 
+    // Build the inputs script for input 0
     const preimage = bsv.Transaction.Sighash.sighashPreimage(
         tx,
         bsv.crypto.Signature.SIGHASH_ALL |
